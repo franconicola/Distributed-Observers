@@ -1,0 +1,544 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>DecentralizedControl2</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2019-05-25"><meta name="DC.source" content="DecentralizedControl2.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">DEFINITION OF SYSTEM</a></li><li><a href="#3">DEFINITION OF MATRICES FOR OBSERVERS</a></li><li><a href="#4">DECENTRALIZED CONTROL</a></li><li><a href="#5">SIMULATIONs</a></li></ul></div><pre class="codeinput">clc;
+clear;
+close <span class="string">all</span>;
+</pre><h2 id="2">DEFINITION OF SYSTEM</h2><pre class="codeinput"><span class="comment">%Number of agents</span>
+m = 2;
+<span class="comment">%Number of state variables</span>
+n = 2;
+<span class="comment">%Overall dimension of the system</span>
+v = m*n;
+
+<span class="comment">%State Matrices</span>
+A = [0 -1; 1 0]
+C1 = [1 0];
+C2 = [0 1];
+C = [C1' C2']';
+E = [-1  1; 1  -1]      <span class="comment">% Incidence graph matrix</span>
+
+<span class="comment">%Check the Jointly Observability</span>
+O = obsv(A,C);
+
+<span class="keyword">if</span> n == rank(O)
+    disp(<span class="string">"System is Jointly Observable"</span>)
+<span class="keyword">else</span>
+    disp(<span class="string">"System is not Jointly Observable"</span>)
+<span class="keyword">end</span>
+
+<span class="comment">%Check the strongly connected components</span>
+GraphE = digraph(E);
+<span class="comment">%plot(GraphE)</span>
+s = conncomp(GraphE);
+
+<span class="keyword">if</span> s == ones(1,m)
+    disp(<span class="string">"Graph is strongly connected"</span>)
+<span class="keyword">else</span>
+    disp(<span class="string">"Graph is weakly connected"</span>)
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">
+A =
+
+     0    -1
+     1     0
+
+
+E =
+
+    -1     1
+     1    -1
+
+System is Jointly Observable
+Graph is strongly connected
+</pre><h2 id="3">DEFINITION OF MATRICES FOR OBSERVERS</h2><pre class="codeinput"><span class="comment">%Kronecker product for matrix A</span>
+Abig = kron(eye(m),A);
+
+<span class="comment">%The transpose of incidence matrix of communication graph</span>
+Ebig = E';
+Ebig =  kron(Ebig, eye(n));
+E1 = Ebig(1:n,:);
+E2 = Ebig(n+1:v,:);
+
+<span class="comment">%Matrices defined by unit vector in position k</span>
+Bbig = kron(eye(n), eye(m));
+B1 = Bbig(:,1:n);
+B2 = Bbig(:,n+1:v);
+
+<span class="comment">%state feedback controller gain matrix</span>
+poles = -1*ones(1,n);           <span class="comment">%desired poles</span>
+Kgain = place(A',eye(n),poles);
+K1 = Kgain(1,:)';
+K2 = Kgain(2,:)';
+
+F = 1*eye(n);
+
+<span class="comment">% Overall observer matrix</span>
+H = Abig -B1*K1*C1*B1' +B1*F*E1 -B2*K2*C2*B2' +B2*F*E2
+
+disp(<span class="string">'Eigenvalues of H:'</span>);
+eig(H)
+</pre><pre class="codeoutput">
+H =
+
+    -2    -1     1     0
+     0    -1     0     1
+     1     0    -1     0
+     0     1     1    -2
+
+Eigenvalues of H:
+
+ans =
+
+  -2.6939 + 0.4188i
+  -2.6939 - 0.4188i
+  -0.3061 + 0.4188i
+  -0.3061 - 0.4188i
+
+</pre><h2 id="4">DECENTRALIZED CONTROL</h2><pre class="codeinput"><span class="comment">% Observability and Controllability of the total system by the second</span>
+<span class="comment">% observer</span>
+Obar = obsv(H,C2*B2');
+Rbar = ctrb(H,B2);
+
+<span class="keyword">if</span> v == rank(Obar) &amp;&amp; v == rank(Rbar)
+    disp(<span class="string">"System (C2, H, B2) is Observable and Controllable"</span>)
+<span class="keyword">else</span>
+    disp(<span class="string">"System (C2, H, B2) is nor Controllable neither Observable"</span>)
+<span class="keyword">end</span>
+
+<span class="comment">% Dynamic Compensator of dimension l implemented to the last observer</span>
+l = m-1;
+
+<span class="comment">% Vector g' used to obtain the matrix phi</span>
+g = C2*B2';
+
+
+<span class="keyword">if</span> charpoly(H) == minpoly(H)
+    disp(<span class="string">'The minimal polynomial is equal to the characteristic polynomial'</span>)
+<span class="keyword">end</span>
+
+<span class="comment">% Check the observability by the vector g' (Cdyn)</span>
+Odyn = obsv(H,g);
+
+<span class="keyword">if</span> v == rank(Odyn)
+     disp(<span class="string">"System (H, g) is Observable"</span>)
+<span class="keyword">else</span>
+     disp(<span class="string">"System (H, g) is not Observable"</span>)
+<span class="keyword">end</span>
+
+<span class="comment">% Characteristic polynomial of H</span>
+alpha = charpoly(H);
+
+<span class="comment">% System definition</span>
+csys_dyn = ss(H,B2,C2*B2',zeros(1,2));
+
+<span class="comment">% Matrices L and phi creation</span>
+L = zeros(v+l,l+1);
+
+<span class="keyword">for</span> i= 1:(v+l)
+    <span class="keyword">if</span>(i == 1)
+        L(i,1:n) =  csys_dyn.C*csys_dyn.B;
+    <span class="keyword">else</span>
+        <span class="keyword">for</span> j = 1:i
+
+            <span class="keyword">if</span> j == 1
+                L(i,1:n) = csys_dyn.C*(csys_dyn.A^(i-1))*csys_dyn.B;
+            <span class="keyword">else</span>
+                L(i,1:n) = L(i,1:n) + alpha(j)*csys_dyn.C*(csys_dyn.A^(i-j))*csys_dyn.B;
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+phi = [1 alpha(2:v+1);
+       zeros(2,1) L(1:v,:)';
+       L(1:v+l,:)']';
+
+rank(phi);
+
+<span class="comment">% desired observer poles</span>
+pole_matrix = -2*eye(v+l);
+beta = charpoly(pole_matrix);
+disp(<span class="string">'Desired eigenvalues:'</span>);
+disp(eig(pole_matrix));
+
+<span class="comment">% subtraction between desired coefficients and given by H</span>
+gamma = beta(1,2:v+1) - alpha(1,2:v+1);
+gamma = [gamma beta(1,6)];
+
+<span class="comment">% solutions delta of the system phi*delta=gamma</span>
+X = linsolve(phi,gamma');
+
+<span class="comment">% Increasing dimension of our last observer</span>
+Bdyn = [csys_dyn.B zeros(v,l); zeros(l,n) eye(l)];
+Cdyn = [csys_dyn.C zeros(1,l); zeros(l,v) eye(l)];
+
+<span class="comment">% Gain implemented in the last observer given by the delta solutions</span>
+Kdyn = [-X(4)  -X(2)+X(4)*X(1);
+        -X(5)  -X(3)+X(5)*X(1);
+        1            -X(1)];
+
+<span class="comment">% Definitions of matrices for increased observer</span>
+Ktr = Bdyn*Kdyn;
+Abar = Kdyn(3,2);
+Bbar = Kdyn(3,1);
+Cbar = Ktr(1:4,2);
+Dbar = Ktr(1:4,1);
+
+<span class="comment">% New H matrix with the dynamic compensator</span>
+Hdyn = [csys_dyn.A+Dbar*csys_dyn.C Cbar;
+        Bbar*csys_dyn.C Abar];
+
+disp(<span class="string">'New eigenvalues of Hdyn:'</span>);
+disp(eig(Hdyn));
+
+B_obs = [ K1' zeros(1,n+l); [zeros(1,n) K2']-Dbar' -Bbar]';
+
+obs_dyn = ss(Hdyn,B_obs,eye(v+l),zeros(v+l,2));
+</pre><pre class="codeoutput">System (C2, H, B2) is Observable and Controllable
+The minimal polynomial is equal to the characteristic polynomial
+System (H, g) is Observable
+Desired eigenvalues:
+    -2
+    -2
+    -2
+    -2
+    -2
+
+New eigenvalues of Hdyn:
+  -2.0016 + 0.0012i
+  -2.0016 - 0.0012i
+  -1.9994 + 0.0019i
+  -1.9994 - 0.0019i
+  -1.9980 + 0.0000i
+
+</pre><h2 id="5">SIMULATIONs</h2><pre class="codeinput">T = 10;
+dt = 0.01;
+t = 0:dt:T;
+
+plant = ss(A,zeros(2,1),eye(2),zeros(2,1));
+u = 1*t;
+x0 = [1;0];
+x = lsim(plant,u,t,x0);
+y1 = C(1,:)*x';
+y2 = C(2,:)*x';
+y = C*x';
+
+z = lsim(obs_dyn, y,t,zeros(5,1));
+
+error1 = x - z(:,1:2);
+error2 = x - z(:,3:4);
+
+figure(<span class="string">'Name'</span>,<span class="string">'First Observer(red) and plant(blue)'</span>)
+plot(t,x,<span class="string">'b'</span>)
+hold <span class="string">on</span>
+plot(t,z(:,1:2), <span class="string">'r'</span>)
+
+figure(<span class="string">'Name'</span>,<span class="string">'Second Observer(red), plant(blue) and compensator dynamic(green)'</span>)
+plot(t,x,<span class="string">'b'</span>)
+hold <span class="string">on</span>
+plot(t,z(:,3:4), <span class="string">'r'</span>)
+plot(t,z(:,5), <span class="string">'g'</span>)
+
+figure(<span class="string">'Name'</span>, <span class="string">'Error of first observer'</span>)
+plot(t, error1)
+grid <span class="string">on</span>
+
+figure(<span class="string">'Name'</span>, <span class="string">'Error of second observer'</span>)
+plot(t, error2)
+grid <span class="string">on</span>
+</pre><img vspace="5" hspace="5" src="DecentralizedControl2_01.png" alt=""> <img vspace="5" hspace="5" src="DecentralizedControl2_02.png" alt=""> <img vspace="5" hspace="5" src="DecentralizedControl2_03.png" alt=""> <img vspace="5" hspace="5" src="DecentralizedControl2_04.png" alt=""> <p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+clc;
+clear;
+close all;
+
+%% DEFINITION OF SYSTEM
+
+%Number of agents
+m = 2;
+%Number of state variables
+n = 2;
+%Overall dimension of the system         
+v = m*n;
+
+%State Matrices
+A = [0 -1; 1 0]
+C1 = [1 0];
+C2 = [0 1];
+C = [C1' C2']';
+E = [-1  1; 1  -1]      % Incidence graph matrix
+
+%Check the Jointly Observability
+O = obsv(A,C);
+
+if n == rank(O) 
+    disp("System is Jointly Observable")
+else
+    disp("System is not Jointly Observable")
+end 
+
+%Check the strongly connected components
+GraphE = digraph(E);
+%plot(GraphE)
+s = conncomp(GraphE);
+
+if s == ones(1,m)
+    disp("Graph is strongly connected")
+else
+    disp("Graph is weakly connected")
+end
+
+%% DEFINITION OF MATRICES FOR OBSERVERS
+
+%Kronecker product for matrix A
+Abig = kron(eye(m),A);
+
+%The transpose of incidence matrix of communication graph 
+Ebig = E';         
+Ebig =  kron(Ebig, eye(n));
+E1 = Ebig(1:n,:);
+E2 = Ebig(n+1:v,:);
+
+%Matrices defined by unit vector in position k
+Bbig = kron(eye(n), eye(m));
+B1 = Bbig(:,1:n);
+B2 = Bbig(:,n+1:v);
+
+%state feedback controller gain matrix
+poles = -1*ones(1,n);           %desired poles
+Kgain = place(A',eye(n),poles);
+K1 = Kgain(1,:)';
+K2 = Kgain(2,:)';
+
+F = 1*eye(n);
+
+% Overall observer matrix
+H = Abig -B1*K1*C1*B1' +B1*F*E1 -B2*K2*C2*B2' +B2*F*E2
+
+disp('Eigenvalues of H:');
+eig(H)
+
+%% DECENTRALIZED CONTROL
+
+% Observability and Controllability of the total system by the second 
+% observer
+Obar = obsv(H,C2*B2');
+Rbar = ctrb(H,B2);
+
+if v == rank(Obar) && v == rank(Rbar)
+    disp("System (C2, H, B2) is Observable and Controllable")
+else
+    disp("System (C2, H, B2) is nor Controllable neither Observable")
+end
+
+% Dynamic Compensator of dimension l implemented to the last observer
+l = m-1;
+
+% Vector g' used to obtain the matrix phi 
+g = C2*B2';
+
+
+if charpoly(H) == minpoly(H)
+    disp('The minimal polynomial is equal to the characteristic polynomial')
+end
+
+% Check the observability by the vector g' (Cdyn)
+Odyn = obsv(H,g);
+
+if v == rank(Odyn)
+     disp("System (H, g) is Observable")
+else
+     disp("System (H, g) is not Observable")
+end
+
+% Characteristic polynomial of H
+alpha = charpoly(H);
+
+% System definition
+csys_dyn = ss(H,B2,C2*B2',zeros(1,2));
+
+% Matrices L and phi creation
+L = zeros(v+l,l+1);
+
+for i= 1:(v+l)
+    if(i == 1)
+        L(i,1:n) =  csys_dyn.C*csys_dyn.B;
+    else
+        for j = 1:i
+
+            if j == 1
+                L(i,1:n) = csys_dyn.C*(csys_dyn.A^(i-1))*csys_dyn.B;
+            else
+                L(i,1:n) = L(i,1:n) + alpha(j)*csys_dyn.C*(csys_dyn.A^(i-j))*csys_dyn.B;
+            end
+        end
+    end
+end  
+
+phi = [1 alpha(2:v+1);  
+       zeros(2,1) L(1:v,:)';
+       L(1:v+l,:)']';
+
+rank(phi);
+
+% desired observer poles 
+pole_matrix = -2*eye(v+l);
+beta = charpoly(pole_matrix);
+disp('Desired eigenvalues:');
+disp(eig(pole_matrix));
+
+% subtraction between desired coefficients and given by H
+gamma = beta(1,2:v+1) - alpha(1,2:v+1);
+gamma = [gamma beta(1,6)];
+
+% solutions delta of the system phi*delta=gamma
+X = linsolve(phi,gamma');
+
+% Increasing dimension of our last observer
+Bdyn = [csys_dyn.B zeros(v,l); zeros(l,n) eye(l)];
+Cdyn = [csys_dyn.C zeros(1,l); zeros(l,v) eye(l)];
+
+% Gain implemented in the last observer given by the delta solutions
+Kdyn = [-X(4)  -X(2)+X(4)*X(1);
+        -X(5)  -X(3)+X(5)*X(1);
+        1            -X(1)];
+
+% Definitions of matrices for increased observer
+Ktr = Bdyn*Kdyn;
+Abar = Kdyn(3,2);
+Bbar = Kdyn(3,1);
+Cbar = Ktr(1:4,2);
+Dbar = Ktr(1:4,1);
+
+% New H matrix with the dynamic compensator
+Hdyn = [csys_dyn.A+Dbar*csys_dyn.C Cbar;  
+        Bbar*csys_dyn.C Abar];
+    
+disp('New eigenvalues of Hdyn:');
+disp(eig(Hdyn));   
+
+B_obs = [ K1' zeros(1,n+l); [zeros(1,n) K2']-Dbar' -Bbar]';
+
+obs_dyn = ss(Hdyn,B_obs,eye(v+l),zeros(v+l,2));
+
+
+
+%% SIMULATIONs
+
+T = 10; 
+dt = 0.01;
+t = 0:dt:T; 
+
+plant = ss(A,zeros(2,1),eye(2),zeros(2,1));
+u = 1*t;
+x0 = [1;0];
+x = lsim(plant,u,t,x0);
+y1 = C(1,:)*x';
+y2 = C(2,:)*x';
+y = C*x';        
+
+z = lsim(obs_dyn, y,t,zeros(5,1));
+
+error1 = x - z(:,1:2);
+error2 = x - z(:,3:4);
+
+figure('Name','First Observer(red) and plant(blue)')
+plot(t,x,'b')
+hold on
+plot(t,z(:,1:2), 'r')
+
+figure('Name','Second Observer(red), plant(blue) and compensator dynamic(green)')
+plot(t,x,'b')
+hold on
+plot(t,z(:,3:4), 'r')
+plot(t,z(:,5), 'g')
+
+figure('Name', 'Error of first observer')
+plot(t, error1)
+grid on
+
+figure('Name', 'Error of second observer')
+plot(t, error2)
+grid on
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### SOURCE END #####
+--></body></html>

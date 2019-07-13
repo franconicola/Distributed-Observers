@@ -13,7 +13,7 @@ v = m*n;
 %Dimension of the dynamic compensator
 l = m-1;
 %Number of positions iteraction
-STEPS = 2;
+STEPS = 1;
 
 
 %State Matrices
@@ -73,7 +73,7 @@ for i = 1:STEPS
 
         [Hdyn,B_obs] = decentralized_control(H,C,Kgain,n,m)  
 
-        obs_dyn = ss(Hdyn,B_obs,eye(size(Hdyn,1)),zeros(size(Hdyn,1),i*m));
+        obs_dyn = ss(Hdyn,B_obs,eye(size(Hdyn,1)),zeros(size(Hdyn,1),STEPS*m));
         
     else
         disp("System is not Jointly Observable")
@@ -90,14 +90,14 @@ T = 15;
 dt = 0.01;
 t = 0:dt:T; 
 
-plant = ss(A,B,eye(n),zeros(n,n));
+plant = ss(A,B,eye(n),zeros(n,2));
 u = zeros(n,1)*t;
 x0 = target_pos';
 x = lsim(plant,u,t,x0);
 
 y = C*x';        
 
-z = lsim(obs_dyn, y,t,zeros(size(Hdyn,1),1));
+z = lsim(obs_dyn, y,t,zeros(5,1));
 
 error1 = x - z(:,1:2);
 error2 = x - z(:,3:4);

@@ -1,4 +1,4 @@
-function [Hdyn,B_obs] = decentralized_control(H,C,Kgain,n,m)
+function [Hdyn,Bbar,Dbar] = decentralized_control(H,C,Kgain,n,m)
 % DECENTRALIZED CONTROL
 % Input arguments are: 
 % Distributed observer matrix H
@@ -165,28 +165,17 @@ if v == rank(Obar) && v == rank(Rbar)
     B_obs = zeros(v+l,mes*m);
     for j = 1:m
         if(j==1)
-            B_obs(:,j) = [ Kgain; zeros(n*(m-1)+l,mes)];
+            B_obs(j,:) = [ Kgain; zeros(n*(m-1)+l,mes)];
         elseif(j == m)
-            B_obs(:,j) = [ [zeros(n*(m-1),mes); Kgain]-Dbar; -Bbar];
+            B_obs(j,:) = [ [zeros(n*(m-1),mes); Kgain]-Dbar; -Bbar];
         else
-            B_obs(:,j) = [ zeros(n*(j-1),mes); Kgain; zeros(n*(m-j)+l,mes)];
+            B_obs(j,:) = [ zeros(n*(m-1)+l,mes); Kgain; zeros(n*(m-1)+l,mes)];
         end
     end
 
 else
     Hdyn = H;
-    
-    % The input matrix B_obs
-    B_obs = zeros(v,mes*m);
-    for j = 1:m
-        if(j==1)
-            B_obs(:,j) = [ Kgain; zeros(n*(m-1),mes)];
-        elseif(j == m)
-            B_obs(:,j) = [ zeros(n*(m-1),mes); Kgain];
-        else
-            B_obs(:,j) = [ zeros(n*(j-1),mes); Kgain; zeros(n*(m-j),mes)];
-        end
-    end
+    B_obs = [ Kgain' zeros(mes,
     
     disp("System (Cm, H, Bm) is nor Controllable neither Observable")
 end

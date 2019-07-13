@@ -1,18 +1,20 @@
-function [C, next_pos] = random_positions(init_pos, n, m)
+function [C, next_pos] = random_positions(init_pos, prec_pos, n, m)
 %2 consecutive random positions generation
 % Input arguments are: 
+% Initial position
+% Precedence position
 % Dimension of system n 
 % Number of agents m
 
 % Initialization
 C = zeros(m,n);
-final_pos = zeros(n,n);
-diff_pos = zeros(n,n);
+final_pos = zeros(m,n);
+diff_pos = zeros(m,n);
 
 for i = 1:m
     for j = 1:n
         % I add or subtract 0, 1 or 2 from the initial position to obtain the second position of my agent
-        final_pos(i,j) = init_pos(i,j) + randi([-2,2]); 
+        final_pos(i,j) = prec_pos(i,j) + randi([-2,2]); 
       
         % I compute the difference between initial position and final position of my agent
         diff_pos(i,j) = final_pos(i,j)- init_pos(i,j);
