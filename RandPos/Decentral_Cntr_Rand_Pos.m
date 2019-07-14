@@ -5,9 +5,9 @@ close all;
 %% SYSTEM'S DEFINITION
 
 %Number of agents
-m = 2;
+m = 3;
 %Number of state variables
-n = 2;
+n = 3;
 %Overall dimension of the system         
 v = m*n;
 %Dimension of the dynamic compensator
@@ -71,11 +71,32 @@ for i = 1:STEPS
         % Definition of matrices for observers
 
         [H,Kgain] = distributed_observer(A,C,E,n,m);
-
-        [Hdyn,B_obs] = decentralized_control(H,C,E,Kgain,n,m);  
-        disp(eig(Hdyn))
+        
+        disp("eig(H):")
+        disp(real(eig(H)))
+        
+        if real(eig(H)) >= 0
+            [Hdyn,B_obs] = decentralized_control(H,C,E,Kgain,n,m);  
+            disp("eig(Hdyn):")
+            disp(eig(Hdyn))
+        
+        else
+            mes = size(C,1)/m;
+            % The input matrix B_obs
+            B_obs = zeros(v,mes*m);
+            for j = 1:m
+                if(j==1)
+                    B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-1),mes)];
+                elseif(j == m)
+                    B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ zeros(n*(m-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes)];
+                else
+                    B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ zeros(n*(j-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-j),mes)];
+                end
+            end
+            Hdyn = H;
+        end
+        
         obs_dyn = ss(Hdyn,B_obs,eye(size(Hdyn,1)),zeros(size(Hdyn,1),i*m));
-                      
         % SIMULATIONs
         T = 15;
         dt = 0.01;

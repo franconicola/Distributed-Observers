@@ -120,7 +120,7 @@ if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
             if(i <= n) 
                 if(j == 1)
                     Kdyn(i,j) = -X(l+n*l+i);
-                elseif(j <= mes && n < mes+l)
+                elseif(j <= mes && n <= mes+l)
                     Kdyn(i,j) = 0;
                 elseif(j < mes+l)
                     Kdyn(i,j) = -X(l+(j-l)*n+i)+X(l+n*l+i)*X(j-l);
@@ -130,7 +130,7 @@ if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
             elseif(i == n+1)
                 if(j == 1)
                     Kdyn(i,j) = 1;
-                elseif(j <= mes && n < mes+l)
+                elseif(j <= mes && n <= mes+l)
                     Kdyn(i,j) = 0;
                 else
                     Kdyn(i,j) = -X(j-mes);

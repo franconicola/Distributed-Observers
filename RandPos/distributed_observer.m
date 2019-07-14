@@ -22,7 +22,7 @@ Bbig = kron(eye(n), eye(m));
 K = zeros(n*m,m*mes);
 
 for i = 1:m
-    K(1+(i-1)*n:n+(i-1)*n,1+(i-1)*mes:mes+(i-1)*mes) = 0.1*randi([1,9],[n,mes]);
+    K(1+(i-1)*n:n+(i-1)*n,1+(i-1)*mes:mes+(i-1)*mes) = 0.01*randi([1,9],[n,mes]);
 end
 
 
