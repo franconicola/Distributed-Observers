@@ -112,8 +112,6 @@ if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
     % solutions delta of the system phi*delta=gamma
     X = linsolve(phi,gamma')
 
-    Cdyn = [csys_dyn.C zeros(mes,l); zeros(l,v) eye(l)];
-
     % Gain implemented in the last observer given by the delta solutions
     Kdyn = zeros(n+l, mes+l);
 
@@ -122,7 +120,7 @@ if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
             if(i <= n) 
                 if(j == 1)
                     Kdyn(i,j) = -X(l+n*l+i);
-                elseif(j <= l && n < mes+l)
+                elseif(j <= mes && n < mes+l)
                     Kdyn(i,j) = 0;
                 elseif(j < mes+l)
                     Kdyn(i,j) = -X(l+(j-l)*n+i)+X(l+n*l+i)*X(j-l);
@@ -132,10 +130,10 @@ if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
             elseif(i == n+1)
                 if(j == 1)
                     Kdyn(i,j) = 1;
-                elseif(j <= l && n < mes+l)
+                elseif(j <= mes && n < mes+l)
                     Kdyn(i,j) = 0;
                 else
-                    Kdyn(i,j) = -X(j-l);
+                    Kdyn(i,j) = -X(j-mes);
                 end
             else
                 if(j == 1)

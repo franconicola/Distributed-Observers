@@ -5,7 +5,7 @@ close all;
 %% SYSTEM'S DEFINITION
 
 %Number of agents
-m = 3;
+m = 2;
 %Number of state variables
 n = 2;
 %Overall dimension of the system         
@@ -13,7 +13,7 @@ v = m*n;
 %Dimension of the dynamic compensator
 l = m-1;
 %Number of positions iteraction
-STEPS = 2;
+STEPS = 3;
 
 
 %State Matrices
