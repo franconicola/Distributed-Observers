@@ -1,8 +1,9 @@
-function [Hdyn,B_obs] = decentralized_control(H,C,Kgain,n,m)
+function [Hdyn,B_obs] = decentralized_control(H,C,E,Kgain,n,m)
 % DECENTRALIZED CONTROL
 % Input arguments are: 
 % Distributed observer matrix H
 % Plant matrix C
+% Graph matrix E
 % Gain matrix Kgain defined in distributed observer H
 % Dimension of system n 
 % Number of agents m
@@ -13,7 +14,7 @@ v = n*m;
 % Observability and Controllability of the total system from last agent
 agent = m;
 
-%Define the size of matrix C for one agent
+% Define the size of matrix C for one agent
 mes = size(C,1)/m;
 
 % Dynamic Compensator of dimension l implemented to the last observer
@@ -22,16 +23,20 @@ l = m-1;
 %Matrices defined by unit vector in position k
 Bbig = kron(eye(n), eye(m));
 
-if( agent < 2)
-    k = agent;
-else
-    k = (agent-1)*n +1;
-end
- 
-Obar = obsv(H,C(1+(agent-1)*mes:mes+(agent-1)*mes,:)*Bbig(:,k:n*agent)');
+%The transpose of incidence matrix of communication graph         
+Ebig =  kron(E', eye(n));
+
+%Iterator
+k = (agent-1)*n +1;
+
+%Matrix C defined as the matrix between connections
+Cm = Ebig(agent,:);     
+
+%We check observability and controllability from the last agent
+Obar = obsv(H,C(1+(agent-1)*mes:mes+(agent-1)*mes,:)*Bbig(:,k:n*agent)'); % Cm
 Rbar = ctrb(H,Bbig(:,k:n*agent));
 
-if v == rank(Obar) && v == rank(Rbar)
+if rank(H) <= rank(Obar) && rank(H) <= rank(Rbar)
     disp("System (Cm, H, Bm) is Observable and Controllable")
 
     if size(charpoly(H)) == size(minpoly(H))
@@ -43,7 +48,7 @@ if v == rank(Obar) && v == rank(Rbar)
     end
 
     % Vector g' used to obtain the matrix phi 
-    g = C(agent*mes,:)*Bbig(:,k:n*agent)';
+    g = C(mes+(agent-1)*mes,:)*Bbig(:,k:n*agent)';      %Cm
 
     % Check the observability by the vector g' (Cdyn)
     Odyn = obsv(H,g);
@@ -57,41 +62,41 @@ if v == rank(Obar) && v == rank(Rbar)
     % Characteristic polynomial of H
     alpha = charpoly(H);
 
-    % System definition
+    % System definition %
     csys_dyn = ss(H,Bbig(:,k:n*agent),C(1+(agent-1)*mes:mes+(agent-1)*mes,:)*Bbig(:,k:n*agent)',zeros(mes,n));
 
     % Matrices L and phi creation
-    L = zeros(v+l,l+1);
-    phi = zeros(v+l,(m*(l+1) + l));
+    L = zeros(v,n);
+    phi = zeros(v+l,v+l);
 
-    for i= 1:(v+l)
+    for i= 1:v
         if(i == 1)
-            L(i,1:n) =  g*csys_dyn.B;
+            L(i,:) =  g*csys_dyn.B;
         else
-            for j = 1:i
+            for j = 1:i+1-l
 
                 if j == 1
-                    L(i,1:n) = g*(csys_dyn.A^(i-1))*csys_dyn.B;
+                    L(i,:) = g*(csys_dyn.A^(i-1))*csys_dyn.B;
                 else
-                    L(i,1:n) = L(i,1:n) + alpha(j)*g*(csys_dyn.A^(i-j))*csys_dyn.B;
+                    L(i,:) = L(i,:) + alpha(j)*g*(csys_dyn.A^(i-j))*csys_dyn.B;
                 end
             end
         end
     end  
-
-    for i= 1:(m+l)
+    
+    for i= 1:l+m
         if(i == 1)
             phi(i,:) =  [1 alpha(2:v+1) zeros(1,l-i)];
         elseif(i < l)
             phi(i,:) =  [zeros(1,l-i) 1 alpha(2:v+1) zeros(1,l-i)];
         elseif(i == l)
-            phi(i,:) =  [zeros(1,l-i) 1 alpha(2:v+1)];
+            phi(i,:) =  [zeros(1,i-1) 1 alpha(2:v+1)];
         elseif(i == l+1)
-            phi(i:i+m-1,:) = [zeros(m, l) L(1:v,:)'];
-        elseif(i > l+1 && i <m+l)
-            phi((i-1+(i-l-1)*m):(i-m+(i-l)*m),:) = [zeros(m, 2*l-i) L(1:v,:)' zeros(m, i-l)];
+            phi(l+1:l+n,:) = [zeros(n, l) L'];  
+        elseif(i > l+1 && i < m+l)
+            phi((l+1+(i-l-1)*n):(l+n+(i-l-1)*n),:) = [zeros(n, 2*l+1-i) L' zeros(n, i-l-1)];
         else
-            phi((i-1+(i-l-1)*m):(i-m+(i-l)*m),:) = [L(1:v,:)' zeros(m, i-l-1)];
+            phi((l+1+(i-l-1)*n):(l+n+(i-l-1)*n),:) = [L' zeros(n, i-l-1)];
         end     
     end
 
@@ -102,15 +107,15 @@ if v == rank(Obar) && v == rank(Rbar)
 
     % subtraction between desired coefficients and given by H
     gamma = beta(1,2:v+1) - alpha(1,2:v+1);
-    gamma = [gamma beta(1,v+l+1)];
-
+    gamma = [gamma beta(1,v+2:v+l+1)];
+    
     % solutions delta of the system phi*delta=gamma
-    X = linsolve(phi,gamma');
+    X = linsolve(phi,gamma')
 
     Cdyn = [csys_dyn.C zeros(mes,l); zeros(l,v) eye(l)];
 
     % Gain implemented in the last observer given by the delta solutions
-    Kdyn = zeros(n+l, mes +l);
+    Kdyn = zeros(n+l, mes+l);
 
     for i=1:n+l
         for j=1:mes+l
@@ -145,7 +150,6 @@ if v == rank(Obar) && v == rank(Rbar)
             end
         end
     end
-
     Kdyn
     
      % Increasing dimensionmes of our last observer
@@ -165,11 +169,11 @@ if v == rank(Obar) && v == rank(Rbar)
     B_obs = zeros(v+l,mes*m);
     for j = 1:m
         if(j==1)
-            B_obs(:,j) = [ Kgain; zeros(n*(m-1)+l,mes)];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-1)+l,mes)];
         elseif(j == m)
-            B_obs(:,j) = [ [zeros(n*(m-1),mes); Kgain]-Dbar; -Bbar];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ [zeros(n*(m-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes)]-Dbar; -Bbar];
         else
-            B_obs(:,j) = [ zeros(n*(j-1),mes); Kgain; zeros(n*(m-j)+l,mes)];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ zeros(n*(j-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-j)+l,mes)];
         end
     end
 
@@ -180,11 +184,11 @@ else
     B_obs = zeros(v,mes*m);
     for j = 1:m
         if(j==1)
-            B_obs(:,j) = [ Kgain; zeros(n*(m-1),mes)];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-1),mes)];
         elseif(j == m)
-            B_obs(:,j) = [ zeros(n*(m-1),mes); Kgain];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ zeros(n*(m-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes)];
         else
-            B_obs(:,j) = [ zeros(n*(j-1),mes); Kgain; zeros(n*(m-j),mes)];
+            B_obs(:,1+(j-1)*mes:mes+(j-1)*mes) = [ zeros(n*(j-1),mes); Kgain(1+(j-1)*n:n+(j-1)*n,1+(j-1)*mes:mes+(j-1)*mes); zeros(n*(m-j),mes)];
         end
     end
     

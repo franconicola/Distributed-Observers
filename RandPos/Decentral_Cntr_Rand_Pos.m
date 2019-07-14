@@ -45,6 +45,7 @@ C_temp = zeros(m,n);
 C_tot = zeros(STEPS*m,n*m);
 
 for i = 1:STEPS
+    
     % Updating positions of drones and the output matrix C_temp
     if (i == 1)
         [C_temp, positions(i:m,:)] = random_positions(init_pos, init_pos, n, m);
@@ -71,56 +72,53 @@ for i = 1:STEPS
 
         [H,Kgain] = distributed_observer(A,C,E,n,m);
 
-        [Hdyn,B_obs] = decentralized_control(H,C,Kgain,n,m)  
-
+        [Hdyn,B_obs] = decentralized_control(H,C,E,Kgain,n,m);  
+        disp(eig(Hdyn))
         obs_dyn = ss(Hdyn,B_obs,eye(size(Hdyn,1)),zeros(size(Hdyn,1),i*m));
+                      
+        % SIMULATIONs
+        T = 15;
+        dt = 0.01;
+        t = 0:dt:T; 
+
+        plant = ss(A,B,eye(n),zeros(n,n));
+        u = zeros(n,1)*t;
+        x0 = target_pos';
+        x = lsim(plant,u,t,x0);
+
+        y = C*x';    %C_temp    
+
+        z = lsim(obs_dyn, y,t,zeros(size(Hdyn,1),1));
+
+        for j = 1:m
+            error(:,1+(j-1)*n:n+(j-1)*n) = x - z(:,1+(j-1)*n:n+(j-1)*n);
+        end
+
+        figure('Name','First Observer(red) and plant(black)')
+        plot(t,x,'k')
+        hold on
+        plot(t,z(:,1:2), 'r')
+
+        figure('Name','Second Observer(red), plant(black) and compensator dynamic(green)')
+        plot(t,x,'k')
+        hold on
+        plot(t,z(:,3:4), 'r')
+        plot(t,z(:,5), 'g')
+
+        figure('Name', 'Errors of observers')
+        plot(t, error)
+        grid on
         
     else
         disp("System is not Jointly Observable")
     end
     
-    
-    
+    pause 
+
+       
 end
 
 
-%% SIMULATIONs
-
-T = 15;
-dt = 0.01;
-t = 0:dt:T; 
-
-plant = ss(A,B,eye(n),zeros(n,n));
-u = zeros(n,1)*t;
-x0 = target_pos';
-x = lsim(plant,u,t,x0);
-
-y = C*x';        
-
-z = lsim(obs_dyn, y,t,zeros(size(Hdyn,1),1));
-
-error1 = x - z(:,1:2);
-error2 = x - z(:,3:4);
-
-
-figure('Name','First Observer(red) and plant(black)')
-plot(t,x,'k')
-hold on
-plot(t,z(:,1:2), 'r')
-
-figure('Name','Second Observer(red), plant(black) and compensator dynamic(green)')
-plot(t,x,'k')
-hold on
-plot(t,z(:,3:4), 'r')
-plot(t,z(:,5), 'g')
-
-figure('Name', 'Error of first observer')
-plot(t, error1)
-grid on
-
-figure('Name', 'Error of second observer')
-plot(t, error2)
-grid on
 
 fprintf('Target Position: X: %i, Y: %i \n', x(1,1), x(1,2));
 
