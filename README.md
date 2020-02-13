@@ -8,11 +8,3 @@ A Distributed observer design is described for estimating the state of a continu
 across a fixed-time network to its neighbors. The information flow increases the capability of each agent to estimate the state of the system and uses collaboration to improve the quality of data.
 The proposed solution has several positive features compared to recent results in the literature, which include milder assumptions on the network connectivity and the maximum dimension of the state of each observer does not exceed the order of the plant. The conditions are reduced to certain detectability requirements for each cluster of agents in the network, where a cluster is identified as a subset of agents that satisfy specific properties. Instead, the dimension of each observer is reduced to the number of possible observable states of the system, collected by the agent and by the neighbors.
 
-## System Example
-
-Simulations are presented in order to show the effectiveness of the proposed solution. Firstly a generic system with sinusoidal behavior, in which agents cooperate to estimate the plant dynamics. Then in the second section, the properties for the convergence of the observers are showed in a use case relates to the search and rescue problem. Matlab is the tool used
-to test the algorithm and to present the results.
-
-Specifically, it is posted a case in which one of the agents is without output measures. Furthermore, the graph is not strongly connected, in fact, one agent is only able to provide his information to the rest of the network and not to receive. Let’s consider the following continuous-time system, 
-
-<p align="center"><img src="/tex/53645bba38367882f360f04dd19d1fcb.svg?invert_in_darkmode&sanitize=true" align=middle width=447.2031894pt height=78.9048876pt/></p>
